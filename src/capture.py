@@ -18,6 +18,8 @@ image = np.zeros((640, 480, 3), np.uint8)
 trackedImage = np.zeros((640, 480, 3), np.uint8)
 imageWidth = imageHeight = 0
 
+mouse_x = mouse_y = 0
+
 '''
 	Defines a color model for the target of interest.
 	rn: Now, just reading pixel color at location
@@ -51,9 +53,14 @@ def doTracking():
 					image[i, j] = [0, 0, 0]			   
 	
 
+# Mouse Callback function
 def clickHandler(event, x, y, flags, param):
+	global mouse_x
+	global mouse_y
 	if event == cv2.EVENT_LBUTTONUP:
 		print('left button released')
+		mouse_x = x
+		mouse_y = y
 		TuneTracker(x, y)
 
 
@@ -88,6 +95,9 @@ def captureVideo(src):
 	cv2.namedWindow(windowName)
 	cv2.setMouseCallback(windowName, clickHandler)
 	while(True):
+		print("Mouse x: ", mouse_x)
+		print("Mouse y: ", mouse_y)
+
 		# Capture frame-by-frame
 		ret, image = cap.read()
 		if ret == False:
