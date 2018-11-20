@@ -10,6 +10,9 @@ import numpy as np
 import cv2
 import sys
 
+
+from BoundingBox import BoundingBox
+
 '''global data common to all vision algorithms'''
 '''Mr. Global Arrays would be proud'''
 isTracking = False
@@ -69,9 +72,15 @@ def mapClicks(x, y, curWidth, curHeight):
 	imageX = x * imageWidth / curWidth
 	imageY = y * imageHeight / curHeight
 	return imageX, imageY
+
+
+def create_bounding_box(x, y, width, height):
+	global image
 		
 def captureVideo(src):
 	global image, isTracking, trackedImage
+
+
 	cap = cv2.VideoCapture(src)
 	if cap.isOpened() and src=='0':
 		ret = cap.set(3, 640) and cap.set(4, 480)
@@ -94,15 +103,18 @@ def captureVideo(src):
 	windowName = 'Input View, press q to quit'
 	cv2.namedWindow(windowName)
 	cv2.setMouseCallback(windowName, clickHandler)
+	
+	
 	while(True):
-		print("Mouse x: ", mouse_x)
-		print("Mouse y: ", mouse_y)
-
 		# Capture frame-by-frame
 		ret, image = cap.read()
 		if ret == False:
 			break
 		
+		
+		bounding_box = BoundingBox(mouse_x, mouse_y, 30, 20, 640, 480)
+		bounding_box.print()
+	
 		# Display the resulting frame   
 		if isTracking:
 			doTracking()
