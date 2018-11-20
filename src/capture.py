@@ -9,6 +9,7 @@ from __future__ import division
 import numpy as np
 import cv2
 import sys
+import random
 
 
 from BoundingBox import BoundingBox
@@ -74,9 +75,26 @@ def mapClicks(x, y, curWidth, curHeight):
 	return imageX, imageY
 
 
-def create_bounding_box(x, y, width, height):
-	global image
+def propagate_step(M, bounding_box):
+	windows = []
+	for i in range(0, M):
+		center_x = random.randint(
+			bounding_box.center_x - bounding_box.width,
+			bounding_box.center_x + bounding_box.width)
 		
+		center_y = random.randint(
+			bounding_box.center_y - bounding_box.height,
+			bounding_box.center_y + bounding_box.height)
+
+		width = bounding_box.width / 10
+		height = bounding_box.height / 10
+		max_x = center_x + width
+		max_y = center_y + height
+		min_x = center_x - width
+		min_y = center_y - height
+
+		bbox = BoundingBox(center_x, center_y, width, height, max_x, max_y, min_x, min_y)
+
 def captureVideo(src):
 	global image, isTracking, trackedImage
 
@@ -112,9 +130,9 @@ def captureVideo(src):
 			break
 		
 		
-		bounding_box = BoundingBox(mouse_x, mouse_y, 30, 20, 640, 480)
+		bounding_box = BoundingBox(mouse_x, mouse_y, 30, 20, 640, 480, 0, 0)
 		bounding_box.print()
-	
+		propagate_step(20, bounding_box)
 		# Display the resulting frame   
 		if isTracking:
 			doTracking()
