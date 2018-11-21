@@ -11,8 +11,8 @@ import cv2
 import sys
 import random
 
-from matplotlib import pyplot
-
+#from matplotlib import pyplot as plt
+from typing import List
 
 from BoundingBox import BoundingBox
 from Particles import Particles
@@ -26,6 +26,9 @@ trackedImage = np.zeros((640, 480, 3), np.uint8)
 imageWidth = imageHeight = 0
 
 mouse_x = mouse_y = 0
+
+hacky_click_has_occurred = False
+
 
 '''
 	Defines a color model for the target of interest.
@@ -64,10 +67,13 @@ def doTracking():
 def clickHandler(event, x, y, flags, param):
 	global mouse_x
 	global mouse_y
+	global hacky_click_has_occurred
+
 	if event == cv2.EVENT_LBUTTONUP:
 		print('left button released')
 		mouse_x = x
 		mouse_y = y
+		hacky_click_has_occurred = True
 		TuneTracker(x, y)
 
 
@@ -78,7 +84,7 @@ def mapClicks(x, y, curWidth, curHeight):
 	return imageX, imageY
 
 
-def propagate_step(M, bounding_box):
+def propagate_step(M, bounding_box) -> List[Particles]:
 	particles = []
 	for i in range(0, M):
 		center_x = random.randint(
@@ -102,8 +108,25 @@ def propagate_step(M, bounding_box):
 	return particles
 
 
-def generate_histograms(particles):
 
+# shape: rows, columns, channels (rgb)
+def generate_histograms(particles):
+	histograms = []
+	for i in range(0, len(particles)):
+		mask = np.zeros(image.shape[:2], np.uint8)
+		min_x = particles[i].bounding_box.center_x - particles[i].bounding_box.width
+		max_x = particles[i].bounding_box.center_x + particles[i].bounding_box.width
+		min_y = particles[i].bounding_box.center_y - particles[i].bounding_box.height
+		max_y = particles[i].bounding_box.center_y + particles[i].bounding_box.height
+		print("minx: ", min_x)
+		print("maxx: ", max_x)
+		# make white mask and get histogram at max
+		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
+		masked_image = cv2.bitwise_and(image, image, mask = mask)
+		histogram_max = cv2.calcHist([image], [0], mask, [256], [0, 256])
+		histograms.append(histograms)
+	
+	return histograms
 
 
 
@@ -141,13 +164,13 @@ def captureVideo(src):
 		if ret == False:
 			break
 		
-		
-		bounding_box = BoundingBox(mouse_x, mouse_y, 30, 20, 640, 480, 0, 0)
-		bounding_box.print()
+		if(hacky_click_has_occurred):
+			bounding_box = BoundingBox(mouse_x, mouse_y, 30, 20, 640, 480, 0, 0)
+			bounding_box.print()
 
 
-		particles = propagate_step(20, bounding_box)
-		histograms = generate_histograms(particles)
+			particles = propagate_step(20, bounding_box)
+			histograms = generate_histograms(particles)
 
 
 
@@ -162,7 +185,9 @@ def captureVideo(src):
 		if inputKey == ord('q'):
 			break
 		elif inputKey == ord('t'):
-			isTracking = not isTracking				
+			isTracking = not isTracking			
+			#elif inputKey == ord('h'):
+			#	plt.subplot(224), plt.plot(histograms[0])
 
 	# When everything done, release the capture
 	cap.release()
