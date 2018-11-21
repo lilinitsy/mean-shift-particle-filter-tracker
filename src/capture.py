@@ -11,8 +11,11 @@ import cv2
 import sys
 import random
 
+from matplotlib import pyplot
+
 
 from BoundingBox import BoundingBox
+from Particles import Particles
 
 '''global data common to all vision algorithms'''
 '''Mr. Global Arrays would be proud'''
@@ -76,16 +79,14 @@ def mapClicks(x, y, curWidth, curHeight):
 
 
 def propagate_step(M, bounding_box):
-	windows = []
+	particles = []
 	for i in range(0, M):
 		center_x = random.randint(
 			bounding_box.center_x - bounding_box.width,
 			bounding_box.center_x + bounding_box.width)
-		
 		center_y = random.randint(
 			bounding_box.center_y - bounding_box.height,
 			bounding_box.center_y + bounding_box.height)
-
 		width = bounding_box.width / 10
 		height = bounding_box.height / 10
 		max_x = center_x + width
@@ -94,6 +95,17 @@ def propagate_step(M, bounding_box):
 		min_y = center_y - height
 
 		bbox = BoundingBox(center_x, center_y, width, height, max_x, max_y, min_x, min_y)
+		weight = 1 # uniform weight
+		particle = Particles(bbox, weight)
+		particles.append(particle)
+
+	return particles
+
+
+def generate_histograms(particles):
+
+
+
 
 def captureVideo(src):
 	global image, isTracking, trackedImage
@@ -132,7 +144,16 @@ def captureVideo(src):
 		
 		bounding_box = BoundingBox(mouse_x, mouse_y, 30, 20, 640, 480, 0, 0)
 		bounding_box.print()
-		propagate_step(20, bounding_box)
+
+
+		particles = propagate_step(20, bounding_box)
+		histograms = generate_histograms(particles)
+
+
+
+
+
+
 		# Display the resulting frame   
 		if isTracking:
 			doTracking()
