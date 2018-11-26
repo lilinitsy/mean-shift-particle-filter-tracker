@@ -124,7 +124,7 @@ def generate_histograms(particles):
 	
 		# make a mask and get histogram in this window
 		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-		histogram_mask = cv2.calcHist([image], [2], mask, [3], [0, 256], )
+		histogram_mask = cv2.calcHist([image], [0], mask, [256], [0, 256])
 		histograms.append(histogram_mask)
 		#histogram_mask
 
@@ -186,7 +186,8 @@ def captureVideo(src):
 			isTracking = not isTracking			
 		elif inputKey == ord('h'):
 			#plt.subplot(221), plt.imshow(histograms[0], 'gray')
-			plt.plot(histograms[0])
+			plt.plot(histograms[3])
+			#plt.xlim([0, 256])
 		plt.show()
 	# When everything done, release the capture
 	cap.release()
