@@ -124,7 +124,7 @@ def generate_histograms(particles):
 		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
 		masked_image = cv2.bitwise_and(image, image, mask = mask)
 		histogram_max = cv2.calcHist([image], [0], mask, [256], [0, 256])
-		histograms.append(histograms)
+		histograms.append(histogram_max)
 	
 	return histograms
 
