@@ -11,7 +11,7 @@ import cv2
 import sys
 import random
 
-#from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 from typing import List
 
 from BoundingBox import BoundingBox
@@ -120,12 +120,14 @@ def generate_histograms(particles):
 		max_y = particles[i].bounding_box.center_y + particles[i].bounding_box.height
 		print("minx: ", min_x)
 		print("maxx: ", max_x)
-		# make white mask and get histogram at max
-		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-		masked_image = cv2.bitwise_and(image, image, mask = mask)
-		histogram_max = cv2.calcHist([image], [0], mask, [256], [0, 256])
-		histograms.append(histogram_max)
+		print("\n")
 	
+		# make a mask and get histogram in this window
+		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
+		histogram_mask = cv2.calcHist([image], [2], mask, [3], [0, 256], )
+		histograms.append(histogram_mask)
+		#histogram_mask
+
 	return histograms
 
 
@@ -173,10 +175,6 @@ def captureVideo(src):
 			histograms = generate_histograms(particles)
 
 
-
-
-
-
 		# Display the resulting frame   
 		if isTracking:
 			doTracking()
@@ -186,9 +184,10 @@ def captureVideo(src):
 			break
 		elif inputKey == ord('t'):
 			isTracking = not isTracking			
-			#elif inputKey == ord('h'):
-			#	plt.subplot(224), plt.plot(histograms[0])
-
+		elif inputKey == ord('h'):
+			#plt.subplot(221), plt.imshow(histograms[0], 'gray')
+			plt.plot(histograms[0])
+		plt.show()
 	# When everything done, release the capture
 	cap.release()
 	cv2.destroyAllWindows()
