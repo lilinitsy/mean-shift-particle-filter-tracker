@@ -89,10 +89,10 @@ def mapClicks(x, y, curWidth, curHeight):
 # shape: rows, columns, channels (rgb)
 # 3-2: Compute colour histogram for each particle
 def generate_histogram(bounding_box: BoundingBox):
-	min_x = bounding_box.center_x - bounding_box.width
-	max_x = bounding_box.center_x + bounding_box.width
-	min_y = bounding_box.center_y - bounding_box.height
-	max_y = bounding_box.center_y + bounding_box.height
+	min_x = bounding_box.center_x - bounding_box.width / 2
+	max_x = bounding_box.center_x + bounding_box.width / 2
+	min_y = bounding_box.center_y - bounding_box.height / 2
+	max_y = bounding_box.center_y + bounding_box.height / 2
 	print("minx: ", min_x)
 	print("maxx: ", max_x)
 	print("miny: ", min_y)
@@ -100,12 +100,22 @@ def generate_histogram(bounding_box: BoundingBox):
 	print("\n")
 	
 	# make a mask and get histogram in this window
-	histogram = cv2.calcHist([image], [0], None, [255], [0, 256])
+	mask = np.zeros(image.shape[:2], np.uint8)
+	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
 	
-	# reduce to 0-1
+#	colour = ['b', 'g', 'r']
+#	for i, col in enumerate(colour):
+#		hist = cv2.calcHist([img], [i], mask, [256], [0, 256])
+	
+	# numpy.ndarray
+	histogram = cv2.calcHist([image], [0], mask, [(max_x - min_x) * (max_y - min_y)], [0, 256])
+	print("Size of histogram: ", histogram.size)
+	#for i in range(0, histogram.size):	
+	
+	# reduce to 0-1 --> PDF model
 	for i in range(0, len(histogram)):
-		#print("len hist: ", len(histogram))
-		histogram[i] /= 255
+		#	print("len hist: ", len(histogram))
+		histogram[i] /= 255.0
 	
 	return histogram
 
@@ -141,8 +151,8 @@ def create_kernel(bounding_box):
 
 # 3-3: Similiarity step, use Bhattacharyya Distance for PF
 # But for MSV, use the colour histogram similarity
-def tracking_histogram_routine(target_histogram, bounding_box, kernel):
-	print("test")
+#def tracking_histogram_routine(target_histogram, bounding_box, kernel):
+	
 
 
 def captureVideo(src):
@@ -203,10 +213,10 @@ def captureVideo(src):
 			isTracking = not isTracking			
 		elif inputKey == ord('h'):
 			fig, binned_hist = plt.subplots()
-			binned_hist.hist(target_histogram, bins=16)
-			
-			#plt.plot(target_histogram, bins = 16)
-			#plt.plot(tracking_histogram)
+			#binned_hist.hist(target_histogram, bins=16)
+			#print("len histogram: ", len(target_histogram))
+			#print(target_histogram)
+			plt.plot(target_histogram)
 		plt.show()
 	# When everything done, release the capture
 	cap.release()
