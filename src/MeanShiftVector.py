@@ -88,7 +88,7 @@ def mapClicks(x, y, curWidth, curHeight):
 
 # shape: rows, columns, channels (rgb)
 # 3-2: Compute colour histogram for each particle
-def generate_histogram(bounding_box: BoundingBox):
+def generate_histograms(bounding_box: BoundingBox):
 	min_x = bounding_box.center_x - bounding_box.width / 2
 	max_x = bounding_box.center_x + bounding_box.width / 2
 	min_y = bounding_box.center_y - bounding_box.height / 2
@@ -102,22 +102,21 @@ def generate_histogram(bounding_box: BoundingBox):
 	# make a mask and get histogram in this window
 	mask = np.zeros(image.shape[:2], np.uint8)
 	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-	
-#	colour = ['b', 'g', 'r']
-#	for i, col in enumerate(colour):
-#		hist = cv2.calcHist([img], [i], mask, [256], [0, 256])
-	
+	histograms = []	
+
+	colours = ('b', 'g', 'r')
+	for i, colours in enumerate(colours):
+		histogram = cv2.calcHist([image], [i], mask, [256], [0, 256])
+		histograms.append(histogram)
+
 	# numpy.ndarray
-	histogram = cv2.calcHist([image], [0], mask, [(max_x - min_x) * (max_y - min_y)], [0, 256])
-	print("Size of histogram: ", histogram.size)
-	#for i in range(0, histogram.size):	
-	
+
 	# reduce to 0-1 --> PDF model
-	for i in range(0, len(histogram)):
-		#	print("len hist: ", len(histogram))
-		histogram[i] /= 255.0
+	#for i in range(0, len(histogram)):
+		#print("len hist: ", len(histogram))
+		#histogram[i] /= 255.0
 	
-	return histogram
+	return histograms
 
 
 def create_kernel(bounding_box):
@@ -134,7 +133,6 @@ def create_kernel(bounding_box):
 				kernel[i][j] = 1 / distance
 			else:
 				kernel[i][j] = 1
-			# print("kernel[", i, "][", j, "]: ", kernel[i][j], "\tDistance: ", distance)
 	
 	for i in range(int(x / 2), x):
 		xdist = x - i
@@ -145,19 +143,19 @@ def create_kernel(bounding_box):
 				kernel[i][j] = 1 / distance
 			else:
 				kernel[i][j] = 1
-			# print("kernel[", i, "][", j, "]: ", kernel[i][j], "\tDistance: ", distance)
-	
+
 	return kernel
 
 # 3-3: Similiarity step, use Bhattacharyya Distance for PF
 # But for MSV, use the colour histogram similarity
 #def tracking_histogram_routine(target_histogram, bounding_box, kernel):
-	
+
+
+
 
 
 def captureVideo(src):
 	global image, isTracking, trackedImage
-
 
 	cap = cv2.VideoCapture(src)
 	if cap.isOpened() and src=='0':
@@ -186,8 +184,8 @@ def captureVideo(src):
 	kernel = create_kernel(bounding_box)
 
 
-	target_histogram = generate_histogram(bounding_box)
-	tracking_histogram = target_histogram
+	target_histograms = generate_histograms(bounding_box)
+	#tracking_histogram = target_histogram
 	
 	while(True):
 		# Capture frame-by-frame
@@ -198,8 +196,7 @@ def captureVideo(src):
 		if(hacky_click_has_occurred):
 			bounding_box = BoundingBox(mouse_x, mouse_y, 30, 30, 640, 480, 0, 0)
 			kernel = create_kernel(bounding_box)
-			#bounding_box.print()
-			target_histogram = generate_histogram(bounding_box)
+			target_histograms = generate_histograms(bounding_box)
 			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
 
 		# Display the resulting frame   
@@ -212,11 +209,11 @@ def captureVideo(src):
 		elif inputKey == ord('t'):
 			isTracking = not isTracking			
 		elif inputKey == ord('h'):
-			fig, binned_hist = plt.subplots()
-			#binned_hist.hist(target_histogram, bins=16)
-			#print("len histogram: ", len(target_histogram))
-			#print(target_histogram)
-			plt.plot(target_histogram)
+			#plt.plot(target_histogram)
+			colours = ('b', 'g', 'r')
+			for i, col in enumerate(colours):
+				plt.plot(target_histograms[i], color = col)
+
 		plt.show()
 	# When everything done, release the capture
 	cap.release()
