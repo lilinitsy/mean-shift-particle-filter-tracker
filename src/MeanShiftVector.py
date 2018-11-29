@@ -84,11 +84,48 @@ def mapClicks(x, y, curWidth, curHeight):
 	imageY = y * imageHeight / curHeight
 	return imageX, imageY
 
+def create_particles(bounding_box: BoundingBox, num_windows: int):
+	particles = []
+	for i in range(0, num_windows):
+		center_x = random.randint(
+			bounding_box.center_x - bounding_box.width,
+			bounding_box.center_x + bounding_box.width)
+		center_y = random.randint(
+			bounding_box.center_y - bounding_box.height,
+			bounding_box.center_y + bounding_box.height)
+		width = bounding_box.width / 10
+		height = bounding_box.height / 10
+		max_x = center_x + width
+		max_y = center_y + height
+		min_x = center_x - width
+		min_y = center_y - height
+
+		bbox = BoundingBox(center_x, center_y, width, height, max_x, max_y, min_x, min_y)
+		weight = 1 # uniform weight
+		particle = Particles(bbox, weight)
+		particles.append(particle)
+
+	return particles
+
+
+
+def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles):
+	histograms = []
+	for i in range(0, len(particles)):
+		mask = np.zeros(image.shape[:2], np.uint8)
+		min_x = particles[i].bounding_box.center_x - particles[i].bounding_box.width
+		max_x = particles[i].bounding_box.center_x + particles[i].bounding_box.width
+		min_y = particles[i].bounding_box.center_y - particles[i].bounding_box.height
+		max_y = particles[i].bounding_box.center_y + particles[i].bounding_box.height
+
+		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
+
 
 
 # shape: rows, columns, channels (rgb)
 # 3-2: Compute colour histogram for each particle
 def generate_histograms(bounding_box: BoundingBox):
+	histograms = []	
 	min_x = bounding_box.center_x - bounding_box.width / 2
 	max_x = bounding_box.center_x + bounding_box.width / 2
 	min_y = bounding_box.center_y - bounding_box.height / 2
@@ -102,7 +139,6 @@ def generate_histograms(bounding_box: BoundingBox):
 	# make a mask and get histogram in this window
 	mask = np.zeros(image.shape[:2], np.uint8)
 	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-	histograms = []	
 
 	colours = ('b', 'g', 'r')
 	for i, colours in enumerate(colours):
@@ -196,6 +232,7 @@ def captureVideo(src):
 		if(hacky_click_has_occurred):
 			bounding_box = BoundingBox(mouse_x, mouse_y, 30, 30, 640, 480, 0, 0)
 			kernel = create_kernel(bounding_box)
+			particles = create_particles(bounding_box, 20)
 			target_histograms = generate_histograms(bounding_box)
 			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
 
