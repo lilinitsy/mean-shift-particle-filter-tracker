@@ -196,9 +196,14 @@ def create_kernel(bounding_box):
 
 
 
-#def draw_bounding_box(bounding_box: BoundingBox) -> None:
-
-
+def draw_bounding_box(bounding_box: BoundingBox, image, color: (int, int, int)) -> None:
+	x = bounding_box.center_x - bounding_box.width / 2
+	y = bounding_box.center_y - bounding_box.height / 2
+	w = bounding_box.width
+	h = bounding_box.height
+	x = int(x)
+	y = int(y)
+	cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
 
 
@@ -252,8 +257,10 @@ def captureVideo(src) -> None:
 			target_histograms = generate_histograms(bounding_box)
 			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
 
-			#draw_bounding_box(bounding_box, color = "red")
-			#draw_bounding_box(track_hist_box, color = "green")
+
+
+			draw_bounding_box(bounding_box, image, color = (0, 0, 255))
+			#draw_bounding_box(track_hist_box, src, color = "green")
 
 
 		# Display the resulting frame   
