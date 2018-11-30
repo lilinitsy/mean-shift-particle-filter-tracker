@@ -112,11 +112,6 @@ def create_particles(bounding_box: BoundingBox, num_windows: int):
 def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles):
 	histograms = [[0 for i in range(0, 3)] for j in range(0, len(particles))]
 
-	for i in range(0, len(histograms) - 1):
-		for j in range(0, len(histograms[i])):
-			print("i, j: ", i, j)
-
-
 	for i in range(0, len(particles)):
 		mask = np.zeros(image.shape[:2], np.uint8)
 		min_x = particles[i].bounding_box.center_x - particles[i].bounding_box.width
@@ -129,9 +124,7 @@ def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles):
 		#histograms[i].append(histogram)
 		colours = ('b', 'g', 'r')
 		for j, cols in enumerate(colours):
-			print("i, j: ", i, j)
 			histograms[i][j] = cv2.calcHist([image], [j], mask, [256], [0, 256])
-		print("through j")
 	return histograms
 
 # shape: rows, columns, channels (rgb)
@@ -228,7 +221,7 @@ def captureVideo(src):
 
 	target_histograms = generate_histograms(bounding_box)
 	#tracking_histogram = target_histogram
-	#window_histograms = []
+	window_histograms = []
 
 	while(True):
 		# Capture frame-by-frame
@@ -240,8 +233,8 @@ def captureVideo(src):
 			bounding_box = BoundingBox(mouse_x, mouse_y, 30, 30, 640, 480, 0, 0)
 			kernel = create_kernel(bounding_box)
 			particles = create_particles(bounding_box, 20)
-			window_histograms = sliding_window_histograms(bounding_box, particles)
 			
+			window_histograms = sliding_window_histograms(bounding_box, particles)
 			target_histograms = generate_histograms(bounding_box)
 			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
 
@@ -258,7 +251,7 @@ def captureVideo(src):
 			#plt.plot(target_histogram)
 			colours = ('b', 'g', 'r')
 			for i, col in enumerate(colours):
-				#splt.plot(target_histograms[i], color = col)
+				#plt.plot(target_histograms[i], color = col)
 				plt.plot(window_histograms[0][i], color = col)
 
 		plt.show()
