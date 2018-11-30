@@ -47,7 +47,7 @@ def TuneTracker(x, y):
 
 	Currently this is doing naive color thresholding.
 '''
-def doTracking():
+def doTracking() -> None:
 	global isTracking, image, r, g, b
 	if isTracking:
 		print(image.shape)
@@ -65,7 +65,7 @@ def doTracking():
 	
 
 # Mouse Callback function
-def clickHandler(event, x, y, flags, param):
+def clickHandler(event, x, y, flags, param) -> None:
 	global mouse_x
 	global mouse_y
 	global hacky_click_has_occurred
@@ -78,13 +78,13 @@ def clickHandler(event, x, y, flags, param):
 		TuneTracker(x, y)
 
 
-def mapClicks(x, y, curWidth, curHeight):
+def mapClicks(x, y, curWidth, curHeight) -> None:
 	global imageHeight, imageWidth
 	imageX = x * imageWidth / curWidth
 	imageY = y * imageHeight / curHeight
 	return imageX, imageY
 
-def create_particles(bounding_box: BoundingBox, num_windows: int):
+def create_particles(bounding_box: BoundingBox, num_windows: int) -> List[Particles]:
 	particles = []
 	for i in range(0, num_windows):
 		center_x = random.randint(
@@ -109,8 +109,9 @@ def create_particles(bounding_box: BoundingBox, num_windows: int):
 
 
 
-def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles):
+def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles) -> (np.ndarray, List):
 	histograms = [[0 for i in range(0, 3)] for j in range(0, len(particles))]
+	bounding_boxes = []
 
 	for i in range(0, len(particles)):
 		mask = np.zeros(image.shape[:2], np.uint8)
@@ -118,18 +119,25 @@ def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles):
 		max_x = particles[i].bounding_box.center_x + particles[i].bounding_box.width
 		min_y = particles[i].bounding_box.center_y - particles[i].bounding_box.height
 		max_y = particles[i].bounding_box.center_y + particles[i].bounding_box.height
+		bbox = BoundingBox(particles[i].bounding_box.center_x,
+			particles[i].bounding_box.center_y,
+			particles[i].bounding_box.width,
+			particles[i].bounding_box.height,
+			640, 480, 0, 0)
+		bounding_boxes.append(bbox)
+
 
 		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
 		
 		#histograms[i].append(histogram)
 		colours = ('b', 'g', 'r')
 		for j, cols in enumerate(colours):
-			histograms[i][j] = cv2.calcHist([image], [j], mask, [256], [0, 256])
-	return histograms
+			histograms[i][j] = cv2.calcHist([image], [j], mask, [16], [0, 256])
+	return (histograms, bounding_boxes)
 
 # shape: rows, columns, channels (rgb)
 # 3-2: Compute colour histogram for each particle
-def generate_histograms(bounding_box: BoundingBox):
+def generate_histograms(bounding_box: BoundingBox) -> np.ndarray:
 	histograms = []	
 	min_x = bounding_box.center_x - bounding_box.width / 2
 	max_x = bounding_box.center_x + bounding_box.width / 2
@@ -154,6 +162,7 @@ def generate_histograms(bounding_box: BoundingBox):
 	return histograms
 
 
+# Not going to type annotate this yet
 def create_kernel(bounding_box):
 	x = bounding_box.width
 	y = bounding_box.height
@@ -187,9 +196,13 @@ def create_kernel(bounding_box):
 
 
 
+#def draw_bounding_box(bounding_box: BoundingBox) -> None:
 
 
-def captureVideo(src):
+
+
+
+def captureVideo(src) -> None:
 	global image, isTracking, trackedImage
 
 	cap = cv2.VideoCapture(src)
@@ -222,6 +235,7 @@ def captureVideo(src):
 	target_histograms = generate_histograms(bounding_box)
 	#tracking_histogram = target_histogram
 	window_histograms = []
+	window_bbs = []
 
 	while(True):
 		# Capture frame-by-frame
@@ -234,9 +248,13 @@ def captureVideo(src):
 			kernel = create_kernel(bounding_box)
 			particles = create_particles(bounding_box, 20)
 			
-			window_histograms = sliding_window_histograms(bounding_box, particles)
+			(window_histograms, window_bbs) = sliding_window_histograms(bounding_box, particles)
 			target_histograms = generate_histograms(bounding_box)
 			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
+
+			#draw_bounding_box(bounding_box, color = "red")
+			#draw_bounding_box(track_hist_box, color = "green")
+
 
 		# Display the resulting frame   
 		if isTracking:
@@ -253,6 +271,9 @@ def captureVideo(src):
 			for i, col in enumerate(colours):
 				#plt.plot(target_histograms[i], color = col)
 				plt.plot(window_histograms[0][i], color = col)
+				plt.hist(window_histograms[0][1], color = col)
+				
+
 
 		plt.show()
 	# When everything done, release the capture
