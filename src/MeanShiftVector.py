@@ -192,7 +192,6 @@ def create_kernel(bounding_box):
 
 # 3-3: Similiarity step, use Bhattacharyya Distance for PF
 # But for MSV, use the colour histogram similarity
-#def tracking_histogram_routine(target_histogram, bounding_box, kernel):
 
 
 
@@ -205,6 +204,14 @@ def draw_bounding_box(bounding_box: BoundingBox, image, color: (int, int, int)) 
 	y = int(y)
 	cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
+
+def tracking_histogram_routine(target_histogram, bounding_box: BoundingBox, kernel, window_histograms: List, window_bbs: List, window_kernels: List, current_center: (int, int)):
+	# Similarity measure for each window_histogram against target_histogram
+	# Find the most similar histogram
+	# Set that as the center, check if distance from current_center to the best window_histogram is below a distance
+	# If it isn't, make a new bounding box using window_histogram as the center,
+	# Recurse with target_histogram, new_bounding_box, kernel, new_window_histograms, new_window_bbs, window_kernels, new_center
+	''''''
 
 
 def captureVideo(src) -> None:
@@ -238,7 +245,7 @@ def captureVideo(src) -> None:
 
 
 	target_histograms = generate_histograms(bounding_box)
-	#tracking_histogram = target_histogram
+	#tracking_histogram = np.zeros()
 	window_histograms = []
 	window_bbs = []
 
@@ -254,13 +261,20 @@ def captureVideo(src) -> None:
 			particles = create_particles(bounding_box, 20)
 			
 			(window_histograms, window_bbs) = sliding_window_histograms(bounding_box, particles)
+			
+			window_kernels = []
+			for i in range(0, len(window_bbs)):
+				window_kernel = create_kernel(window_bbs[i])
+				window_kernels.append(window_kernel)
+
+
 			target_histograms = generate_histograms(bounding_box)
 			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
 
 
 
 			draw_bounding_box(bounding_box, image, color = (0, 0, 255))
-			#draw_bounding_box(track_hist_box, src, color = "green")
+			#draw_bounding_box(track_hist_box, image, color = (0, 255, 0))
 
 
 		# Display the resulting frame   
