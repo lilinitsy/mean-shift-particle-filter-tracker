@@ -27,53 +27,16 @@ trackedImage = np.zeros((640, 480, 3), np.uint8)
 imageWidth = 0
 imageHeight = 0
 
-mouse_x = 0
-mouse_y = 0
-
 width = 60
 height = 60
 current_x = 0
 current_y = 0
 
 hacky_click_has_occurred = False
-
-
-'''
-	Defines a color model for the target of interest.
-	rn: Now, just reading pixel color at location
-'''
-
-def TuneTracker(x, y):
-	global r, g, b, image
-	b, g, r = image[y, x]
-	print(r, g, b, 'at location ', x, y)
-
-
-''' Have to update this to perform Sequential Monte Carlo
-	tracking, i.e. the particle filter steps.
-
-	Currently this is doing naive color thresholding.
-'''
-def doTracking() -> None:
-	global isTracking, image, r, g, b
-	if isTracking:
-		print(image.shape)
-		imheight, imwidth, implanes = image.shape
-		for j in range(imwidth):
-			for i in range(imheight):
-				bb, gg, rr = image[i, j]
-				sumpixels = float(bb) + float(gg) + float(rr)
-				if sumpixels == 0:
-					sumpixels = 1
-				if rr / sumpixels >= r and gg / sumpixels >= g and bb / sumpixels >= b:
-					image[i, j] = [255, 255, 255]
-				else:
-					image[i, j] = [0, 0, 0]			   
 	
 
 # Mouse Callback function
 def clickHandler(event, x, y, flags, param) -> None:
-	global mouse_x
 	global mouse_y
 	global current_x
 	global current_y
@@ -81,29 +44,10 @@ def clickHandler(event, x, y, flags, param) -> None:
 
 	if event == cv2.EVENT_LBUTTONUP:
 		print('left button released')
-		mouse_x = x
 		mouse_y = y
 		current_x = x
 		current_y = y
 		hacky_click_has_occurred = True
-		TuneTracker(x, y)
-
-
-def mapClicks(x, y, curWidth, curHeight) -> None:
-	global imageHeight, imageWidth
-	imageX = x * imageWidth / curWidth
-	imageY = y * imageHeight / curHeight
-	return (imageX, imageY)
-
-
-def draw_bounding_box(bounding_box: BoundingBox, image, color: (int, int, int)) -> None:
-	x = bounding_box.bottomleft_x
-	y = bounding_box.bottomleft_y
-	w = bounding_box.width
-	h = bounding_box.height
-	x = int(x)
-	y = int(y)
-	cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
 
 def calculate_histogram(bounding_box: BoundingBox, img):
@@ -118,6 +62,7 @@ def calculate_histogram(bounding_box: BoundingBox, img):
 	histogram = cv2.calcHist([img], [0], mask, [256], [0, 256])
 	return histogram
 
+
 def draw(window, image):
 	(bottom_x, bottom_y, width, height) = window
 	#bounds = cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), 255, 2)
@@ -126,12 +71,11 @@ def draw(window, image):
 	cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), (0, 0, 255), 2)
 	
 
-
 def captureVideo(src) -> None:
 	global image, isTracking, trackedImage, current_x, current_y
 
 	cap = cv2.VideoCapture(src)
-	if cap.isOpened() and src=='0':
+	if cap.isOpened() and src == '0':
 		ret = cap.set(3, 640) and cap.set(4, 480)
 		if ret == False:
 			print('Cannot set frame properties, returning')
@@ -149,20 +93,19 @@ def captureVideo(src) -> None:
 	else:
 		print('Failed to setup capture device')
 
-	windowName = 'Input View, press q to quit'
+	windowName = 'Mean Shift Vector, press q to quit'
 	cv2.namedWindow(windowName)
 	cv2.setMouseCallback(windowName, clickHandler)
 
-	ret,image = cap.read()
-	#track_window = (mouse_x, mouse_y, width, height)
-	termination_parameters = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 5, 5)
+	ret, image = cap.read()
+	termination_parameters = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 5, 5)
 
 	while(True):
 		ret, image = cap.read()
 		
 		if(hacky_click_has_occurred):
 			track_window = (current_x, current_y, width, height)
-			tracking_region = image[mouse_y:mouse_y + height, mouse_x:mouse_x + width]
+			tracking_region = image[current_y:current_y + height, current_x:current_x + width]
 			mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((255.0, 255.0, 255.0)))
 			tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
 			cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
@@ -176,17 +119,13 @@ def captureVideo(src) -> None:
 			draw(track_window, image)
 		
 		# Display the resulting frame   
-		if isTracking:
-			doTracking()
-		cv2.imshow(windowName, image )										
+		cv2.imshow(windowName, image)										
+
 		inputKey = cv2.waitKey(waitTime) & 0xFF
 		if inputKey == ord('q'):
 			break
 		elif inputKey == ord('t'):
 			isTracking = not isTracking			
-		elif inputKey == ord('h'):
-			#plt.plot(target_histogram)
-			''''''
 
 	# When everything done, release the capture
 	cap.release()
