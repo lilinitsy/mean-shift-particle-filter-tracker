@@ -24,9 +24,16 @@ isTracking = False
 r = g = b = 0.0
 image = np.zeros((640, 480, 3), np.uint8)
 trackedImage = np.zeros((640, 480, 3), np.uint8)
-imageWidth = imageHeight = 0
+imageWidth = 0
+imageHeight = 0
 
-mouse_x = mouse_y = 0
+mouse_x = 0
+mouse_y = 0
+
+width = 60
+height = 60
+current_x = 0
+current_y = 0
 
 hacky_click_has_occurred = False
 
@@ -68,12 +75,16 @@ def doTracking() -> None:
 def clickHandler(event, x, y, flags, param) -> None:
 	global mouse_x
 	global mouse_y
+	global current_x
+	global current_y
 	global hacky_click_has_occurred
 
 	if event == cv2.EVENT_LBUTTONUP:
 		print('left button released')
 		mouse_x = x
 		mouse_y = y
+		current_x = x
+		current_y = y
 		hacky_click_has_occurred = True
 		TuneTracker(x, y)
 
@@ -117,7 +128,7 @@ def draw(window, image):
 
 
 def captureVideo(src) -> None:
-	global image, isTracking, trackedImage
+	global image, isTracking, trackedImage, current_x, current_y
 
 	cap = cv2.VideoCapture(src)
 	if cap.isOpened() and src=='0':
@@ -143,9 +154,6 @@ def captureVideo(src) -> None:
 	cv2.setMouseCallback(windowName, clickHandler)
 
 	ret,image = cap.read()
-	width = 60
-	height = 60
-	r,h,c,w = 250,30,400,30  # simply hardcoded the values
 	#track_window = (mouse_x, mouse_y, width, height)
 	termination_parameters = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 5, 5)
 
@@ -153,7 +161,7 @@ def captureVideo(src) -> None:
 		ret, image = cap.read()
 		
 		if(hacky_click_has_occurred):
-			track_window = (mouse_x, mouse_y, width, height)
+			track_window = (current_x, current_y, width, height)
 			tracking_region = image[mouse_y:mouse_y + height, mouse_x:mouse_x + width]
 			mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((255.0, 255.0, 255.0)))
 			tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
@@ -163,6 +171,8 @@ def captureVideo(src) -> None:
 			dst = cv2.calcBackProject([hsv], [0], tracking_region_hist, [0,256], 1)
 			# apply meanshift to get the new location
 			ret, track_window = cv2.meanShift(dst, track_window, termination_parameters)
+			current_x = track_window[0]
+			current_y = track_window[1]
 			draw(track_window, image)
 		
 		# Display the resulting frame   
