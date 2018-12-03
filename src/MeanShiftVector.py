@@ -82,122 +82,12 @@ def mapClicks(x, y, curWidth, curHeight) -> None:
 	global imageHeight, imageWidth
 	imageX = x * imageWidth / curWidth
 	imageY = y * imageHeight / curHeight
-	return imageX, imageY
-
-def create_particles(bounding_box: BoundingBox, num_windows: int) -> List[Particles]:
-	particles = []
-	for i in range(0, num_windows):
-		center_x = random.randint(
-			bounding_box.center_x - bounding_box.width,
-			bounding_box.center_x + bounding_box.width)
-		center_y = random.randint(
-			bounding_box.center_y - bounding_box.height,
-			bounding_box.center_y + bounding_box.height)
-		width = bounding_box.width / 10
-		height = bounding_box.height / 10
-		max_x = center_x + width
-		max_y = center_y + height
-		min_x = center_x - width
-		min_y = center_y - height
-
-		bbox = BoundingBox(center_x, center_y, width, height, max_x, max_y, min_x, min_y)
-		weight = 1 # uniform weight
-		particle = Particles(bbox, weight)
-		particles.append(particle)
-
-	return particles
-
-
-
-def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles) -> (np.ndarray, List):
-	histograms = [[0 for i in range(0, 3)] for j in range(0, len(particles))]
-	bounding_boxes = []
-
-	for i in range(0, len(particles)):
-		mask = np.zeros(image.shape[:2], np.uint8)
-		min_x = particles[i].bounding_box.center_x - particles[i].bounding_box.width
-		max_x = particles[i].bounding_box.center_x + particles[i].bounding_box.width
-		min_y = particles[i].bounding_box.center_y - particles[i].bounding_box.height
-		max_y = particles[i].bounding_box.center_y + particles[i].bounding_box.height
-		bbox = BoundingBox(particles[i].bounding_box.center_x,
-			particles[i].bounding_box.center_y,
-			particles[i].bounding_box.width,
-			particles[i].bounding_box.height,
-			640, 480, 0, 0)
-		bounding_boxes.append(bbox)
-
-
-		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-		
-		#histograms[i].append(histogram)
-		colours = ('b', 'g', 'r')
-		for j, cols in enumerate(colours):
-			histograms[i][j] = cv2.calcHist([image], [j], mask, [16], [0, 256])
-	return (histograms, bounding_boxes)
-
-# shape: rows, columns, channels (rgb)
-# 3-2: Compute colour histogram for each particle
-def generate_histograms(bounding_box: BoundingBox) -> np.ndarray:
-	histograms = []	
-	min_x = bounding_box.center_x - bounding_box.width / 2
-	max_x = bounding_box.center_x + bounding_box.width / 2
-	min_y = bounding_box.center_y - bounding_box.height / 2
-	max_y = bounding_box.center_y + bounding_box.height / 2
-	
-	# make a mask and get histogram in this window
-	mask = np.zeros(image.shape[:2], np.uint8)
-	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-
-	colours = ('b', 'g', 'r')
-	for i, cols in enumerate(colours):
-		histogram = cv2.calcHist([image], [i], mask, [16], [0, 256])
-		histograms.append(histogram)
-
-	# numpy.ndarray	
-	return histograms
-
-
-# Not going to type annotate this yet
-def create_kernel(bounding_box):
-	x = int(bounding_box.width)
-	y = int(bounding_box.height)
-	kernel = [[0 for i in range(y)] for j in range(x)]
-
-	for i in range(int(x / 2)):
-		xdist = x / 2 - i
-		for j in range(int(y / 2)):
-			ydist = y / 2 - j
-			distance = math.sqrt(xdist ** 2 + ydist ** 2)
-			if(distance > 0):
-				kernel[i][j] = 1 / distance
-			else:
-				kernel[i][j] = 1
-	
-	for i in range(int(x / 2), x):
-		xdist = x - i
-		for j in range(int(y / 2), y):
-			ydist = y / 2 - j
-			distance = math.sqrt(xdist ** 2 + ydist ** 2)
-			if(distance > 0):
-				kernel[i][j] = 1 / distance
-			else:
-				kernel[i][j] = 1
-
-	return kernel
-
-# 3-3: Similiarity step, use Bhattacharyya Distance for PF
-# But for MSV, use the colour histogram similarity
-
-# From mpatacchiola - github user
-def histogram_similarity(hist1, hist2):
-	min = np.minimum(hist1, hist2)
-	intersection = np.true_divide(np.sum(min), np.sum(hist2))
-	return intersection
+	return (imageX, imageY)
 
 
 def draw_bounding_box(bounding_box: BoundingBox, image, color: (int, int, int)) -> None:
-	x = bounding_box.center_x - bounding_box.width / 2
-	y = bounding_box.center_y - bounding_box.height / 2
+	x = bounding_box.bottomleft_x
+	y = bounding_box.bottomleft_y
 	w = bounding_box.width
 	h = bounding_box.height
 	x = int(x)
@@ -205,28 +95,25 @@ def draw_bounding_box(bounding_box: BoundingBox, image, color: (int, int, int)) 
 	cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
 
-def tracking_histogram_routine(target_histograms, bounding_box: BoundingBox, kernel, window_histograms: List, window_bbs: List, window_kernels: List, current_center: (int, int)):
-	# Similarity measure for each window_histogram against target_histogram
-	# Find the most similar histogram
-	# Set that as the center, check if distance from current_center to the best window_histogram is below a distance
-	# If it isn't, make a new bounding box using window_histogram as the center,
-	# Recurse with target_histogram, new_bounding_box, kernel, new_window_histograms, new_window_bbs, window_kernels, new_center
-	max = 0
-	index = 0
-	for i in range(0, len(window_histograms)):
-		intersection = 0
-		for j in range(0, 3):
-			intersection += histogram_similarity(target_histograms[j], window_histograms[i][j])
+def calculate_histogram(bounding_box: BoundingBox, img):
+	min_x = bounding_box.bottomleft_x
+	max_x = bounding_box.bottomleft_x + bounding_box.width
+	min_y = bounding_box.bottomleft_y
+	max_y = bounding_box.bottomleft_y + bounding_box.height
+	
+	# make a mask and get histogram in this window
+	mask = np.zeros(img.shape[:2], np.uint8)
+	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
+	histogram = cv2.calcHist([img], [0], mask, [256], [0, 256])
+	return histogram
 
-		if intersection >= max:
-			max = intersection
-			index = i
-		
-
-
-	print("max: ", max)
-	print("index: ", index)
-		
+def draw(window, image):
+	(bottom_x, bottom_y, width, height) = window
+	#bounds = cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), 255, 2)
+	#cv2.imshow('bounding_box', bounds)
+			##img2 = cv2.rectangle(image, (x,y), (x+w,y+h), 255,2)
+	cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), (0, 0, 255), 2)
+	
 
 
 def captureVideo(src) -> None:
@@ -243,7 +130,7 @@ def captureVideo(src) -> None:
 		print(frate, ' is the framerate')
 		waitTime = int(1000 / frate)
 
-#	waitTime = time/frame. Adjust accordingly.
+#	waitTime = time/image. Adjust accordingly.
 	if src == 0:
 		waitTime = 1
 	if cap:
@@ -254,44 +141,30 @@ def captureVideo(src) -> None:
 	windowName = 'Input View, press q to quit'
 	cv2.namedWindow(windowName)
 	cv2.setMouseCallback(windowName, clickHandler)
-	
-	bounding_box = BoundingBox(mouse_x, mouse_y, 30, 30, 640, 480, 0, 0)
-	kernel = create_kernel(bounding_box)
 
-
-	target_histograms = generate_histograms(bounding_box)
-	#tracking_histogram = np.zeros()
-	window_histograms = []
-	window_bbs = []
+	ret,image = cap.read()
+	width = 60
+	height = 60
+	r,h,c,w = 250,30,400,30  # simply hardcoded the values
+	#track_window = (mouse_x, mouse_y, width, height)
+	termination_parameters = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 5, 5)
 
 	while(True):
-		# Capture frame-by-frame
 		ret, image = cap.read()
-		if ret == False:
-			break
 		
 		if(hacky_click_has_occurred):
-			bounding_box = BoundingBox(mouse_x, mouse_y, 30, 30, 640, 480, 0, 0)
-			kernel = create_kernel(bounding_box)
-			particles = create_particles(bounding_box, 20)
-			
-			(window_histograms, window_bbs) = sliding_window_histograms(bounding_box, particles)
-			
-			window_kernels = []
-			for i in range(0, len(window_bbs)):
-				window_kernel = create_kernel(window_bbs[i])
-				window_kernels.append(window_kernel)
+			track_window = (mouse_x, mouse_y, width, height)
+			tracking_region = image[mouse_y:mouse_y + height, mouse_x:mouse_x + width]
+			mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((255.0, 255.0, 255.0)))
+			tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
+			cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
 
-
-			target_histograms = generate_histograms(bounding_box)
-			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
-			tracking_histogram_routine(target_histograms, bounding_box, kernel, window_histograms, window_bbs, window_kernels, (bounding_box.center_x, bounding_box.center_y))
-
-
-			draw_bounding_box(bounding_box, image, color = (0, 0, 255))
-			#draw_bounding_box(track_hist_box, image, color = (0, 255, 0))
-
-
+			hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+			dst = cv2.calcBackProject([hsv], [0], tracking_region_hist, [0,256], 1)
+			# apply meanshift to get the new location
+			ret, track_window = cv2.meanShift(dst, track_window, termination_parameters)
+			draw(track_window, image)
+		
 		# Display the resulting frame   
 		if isTracking:
 			doTracking()
@@ -303,15 +176,8 @@ def captureVideo(src) -> None:
 			isTracking = not isTracking			
 		elif inputKey == ord('h'):
 			#plt.plot(target_histogram)
-			colours = ('b', 'g', 'r')
-			for i, col in enumerate(colours):
-				#plt.plot(target_histograms[i], color = col)
-				plt.plot(window_histograms[0][i], color = col)
-				plt.hist(window_histograms[0][1], color = col)
-				
+			''''''
 
-
-		plt.show()
 	# When everything done, release the capture
 	cap.release()
 	cv2.destroyAllWindows()
