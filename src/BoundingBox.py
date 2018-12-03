@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class BoundingBox:
 	bottomleft_x: int
 	bottomleft_y: int

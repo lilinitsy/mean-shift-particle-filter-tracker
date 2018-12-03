@@ -5,6 +5,13 @@ Press q to exit
 Junaed Sattar
 October 2018
 '''
+
+'''
+	REDEFINE BOUNDING BOX TO BE BOUNDING CIRCLE?
+	MAKE THEM CENTERED AT RANDOM LOCATIONS THROUGHOUGHT THE IMAGE
+	GET THE AVERAGE POSITION (and show it in a different colour)
+'''
+
 from __future__ import division
 import numpy as np
 import cv2
