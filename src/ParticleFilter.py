@@ -5,13 +5,6 @@ Press q to exit
 Original boiler plate code (mouse events, window capture) by Junaed Sattar
 October 2018
 '''
-
-'''
-	REDEFINE BOUNDING BOX TO BE BOUNDING CIRCLE?
-	MAKE THEM CENTERED AT RANDOM LOCATIONS THROUGHOUGHT THE IMAGE
-	GET THE AVERAGE POSITION (and show it in a different colour)
-'''
-
 from __future__ import division
 import numpy as np
 import cv2
@@ -25,6 +18,14 @@ from typing import List
 from BoundingBox import BoundingBox
 from Particles import Particles
 
+
+'''
+	REDEFINE BOUNDING BOX TO BE BOUNDING CIRCLE?
+	MAKE THEM CENTERED AT RANDOM LOCATIONS THROUGHOUGHT THE IMAGE
+	GET THE AVERAGE POSITION (and show it in a different colour)
+'''
+
+
 '''global data common to all vision algorithms'''
 '''Mr. Global Arrays would be proud'''
 isTracking = False
@@ -36,39 +37,7 @@ imageWidth = imageHeight = 0
 mouse_x = mouse_y = 0
 
 hacky_click_has_occurred = False
-
-
-'''
-	Defines a color model for the target of interest.
-	rn: Now, just reading pixel color at location
-'''
-
-def TuneTracker(x, y):
-	global r, g, b, image
-	b, g, r = image[y, x]
-	print(r, g, b, 'at location ', x, y)
-
-
-''' Have to update this to perform Sequential Monte Carlo
-	tracking, i.e. the particle filter steps.
-
-	Currently this is doing naive color thresholding.
-'''
-def doTracking() -> None:
-	global isTracking, image, r, g, b
-	if isTracking:
-		print(image.shape)
-		imheight, imwidth, implanes = image.shape
-		for j in range(imwidth):
-			for i in range(imheight):
-				bb, gg, rr = image[i, j]
-				sumpixels = float(bb) + float(gg) + float(rr)
-				if sumpixels == 0:
-					sumpixels = 1
-				if rr / sumpixels >= r and gg / sumpixels >= g and bb / sumpixels >= b:
-					image[i, j] = [255, 255, 255]
-				else:
-					image[i, j] = [0, 0, 0]			   
+	   
 	
 
 # Mouse Callback function
@@ -82,7 +51,6 @@ def clickHandler(event, x, y, flags, param) -> None:
 		mouse_x = x
 		mouse_y = y
 		hacky_click_has_occurred = True
-		TuneTracker(x, y)
 
 
 def mapClicks(x, y, curWidth, curHeight) -> None:
@@ -91,26 +59,8 @@ def mapClicks(x, y, curWidth, curHeight) -> None:
 	imageY = y * imageHeight / curHeight
 	return imageX, imageY
 
-def create_particles(bounding_box: BoundingBox, num_windows: int) -> List[Particles]:
+def create_particles(boun: BoundingBox, num_windows: int) -> List[Particles]:
 	particles = []
-	for i in range(0, num_windows):
-		bottomleft_x = random.randint(
-			bounding_box.bottomleft_x - bounding_box.width,
-			bounding_box.bottomleft_x + bounding_box.width)
-		bottomleft_y = random.randint(
-			bounding_box.bottomleft_y - bounding_box.height,
-			bounding_box.bottomleft_y + bounding_box.height)
-		width = bounding_box.width / 10
-		height = bounding_box.height / 10
-		max_x = bottomleft_x + width
-		max_y = bottomleft_y + height
-		min_x = bottomleft_x - width
-		min_y = bottomleft_y - height
-
-		bbox = BoundingBox(bottomleft_x, bottomleft_y, width, height, max_x, max_y, min_x, min_y)
-		weight = 1 # uniform weight
-		particle = Particles(bbox, weight)
-		particles.append(particle)
 
 	return particles
 
@@ -120,45 +70,13 @@ def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles) -
 	histograms = [[0 for i in range(0, 3)] for j in range(0, len(particles))]
 	bounding_boxes = []
 
-	for i in range(0, len(particles)):
-		mask = np.zeros(image.shape[:2], np.uint8)
-		min_x = particles[i].bounding_box.bottomleft_x
-		max_x = particles[i].bounding_box.bottomleft_x + particles[i].bounding_box.width
-		min_y = particles[i].bounding_box.bottomleft_y
-		max_y = particles[i].bounding_box.bottomleft_y + particles[i].bounding_box.height
-		bbox = BoundingBox(particles[i].bounding_box.bottomleft_x,
-			particles[i].bounding_box.bottomleft_y,
-			particles[i].bounding_box.width,
-			particles[i].bounding_box.height,
-			640, 480, 0, 0)
-		bounding_boxes.append(bbox)
 
-
-		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-		
-		#histograms[i].append(histogram)
-		colours = ('b', 'g', 'r')
-		for j, cols in enumerate(colours):
-			histograms[i][j] = cv2.calcHist([image], [j], mask, [16], [0, 256])
 	return (histograms, bounding_boxes)
 
 # shape: rows, columns, channels (rgb)
 # 3-2: Compute colour histogram for each particle
 def generate_histograms(bounding_box: BoundingBox) -> np.ndarray:
 	histograms = []	
-	min_x = bounding_box.bottomleft_x
-	max_x = bounding_box.bottomleft_x + bounding_box.width
-	min_y = bounding_box.bottomleft_y
-	max_y = bounding_box.bottomleft_y + bounding_box.height
-	
-	# make a mask and get histogram in this window
-	mask = np.zeros(image.shape[:2], np.uint8)
-	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-
-	colours = ('b', 'g', 'r')
-	for i, cols in enumerate(colours):
-		histogram = cv2.calcHist([image], [i], mask, [16], [0, 256])
-		histograms.append(histogram)
 
 	# numpy.ndarray	
 	return histograms
@@ -169,37 +87,11 @@ def create_kernel(bounding_box):
 	x = int(bounding_box.width)
 	y = int(bounding_box.height)
 	kernel = [[0 for i in range(y)] for j in range(x)]
-
-	for i in range(int(x / 2)):
-		xdist = x / 2 - i
-		for j in range(int(y / 2)):
-			ydist = y / 2 - j
-			distance = math.sqrt(xdist ** 2 + ydist ** 2)
-			if(distance > 0):
-				kernel[i][j] = 1 / distance
-			else:
-				kernel[i][j] = 1
-	
-	for i in range(int(x / 2), x):
-		xdist = x - i
-		for j in range(int(y / 2), y):
-			ydist = y / 2 - j
-			distance = math.sqrt(xdist ** 2 + ydist ** 2)
-			if(distance > 0):
-				kernel[i][j] = 1 / distance
-			else:
-				kernel[i][j] = 1
-
+	# use gaussian distance???
 	return kernel
 
 # 3-3: Similiarity step, use Bhattacharyya Distance for PF
 # But for MSV, use the colour histogram similarity
-
-# From mpatacchiola - github user
-def histogram_similarity(hist1, hist2):
-	min = np.minimum(hist1, hist2)
-	intersection = np.true_divide(np.sum(min), np.sum(hist2))
-	return intersection
 
 
 def draw_bounding_box(bounding_box: BoundingBox, image, color: (int, int, int)) -> None:
@@ -220,17 +112,6 @@ def tracking_histogram_routine(target_histograms, bounding_box: BoundingBox, ker
 	# Recurse with target_histogram, new_bounding_box, kernel, new_window_histograms, new_window_bbs, window_kernels, new_center
 	max = 0
 	index = 0
-	for i in range(0, len(window_histograms)):
-		intersection = 0
-		for j in range(0, 3):
-			intersection += histogram_similarity(target_histograms[j], window_histograms[i][j])
-
-		if intersection >= max:
-			max = intersection
-			index = i
-		
-
-
 	print("max: ", max)
 	print("index: ", index)
 		
@@ -276,6 +157,8 @@ def captureVideo(src) -> None:
 		ret, image = cap.read()
 		if ret == False:
 			break
+
+		hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 		
 		if(hacky_click_has_occurred):
 			bounding_box = BoundingBox(mouse_x, mouse_y, 30, 30, 640, 480, 0, 0)
@@ -300,8 +183,6 @@ def captureVideo(src) -> None:
 
 
 		# Display the resulting frame   
-		if isTracking:
-			doTracking()
 		cv2.imshow(windowName, image )										
 		inputKey = cv2.waitKey(waitTime) & 0xFF
 		if inputKey == ord('q'):

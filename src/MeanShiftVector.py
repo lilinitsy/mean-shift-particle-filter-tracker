@@ -95,6 +95,8 @@ def captureVideo(src) -> None:
 	cv2.setMouseCallback(windowName, clickHandler)
 
 	ret, image = cap.read()
+	
+	# OpenCV docs - first 5 is the # iterations, second 5 is the min pixels to move before stopping... lower means more accurate?
 	termination_parameters = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 5, 5)
 
 	while(True):
@@ -108,10 +110,10 @@ def captureVideo(src) -> None:
 				tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
 				cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
 
-				hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-				dst = cv2.calcBackProject([hsv], [0], tracking_region_hist, [0,256], 1)
+				hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+				back_propagation = cv2.calcBackProject([hsv_image], [0], tracking_region_hist, [0,256], 1)
 				# apply meanshift to get the new location
-				ret, track_window = cv2.meanShift(dst, track_window, termination_parameters)
+				ret, track_window = cv2.meanShift(back_propagation, track_window, termination_parameters)
 				current_x[i] = track_window[0]
 				current_y[i] = track_window[1]
 				draw(track_window, image)
