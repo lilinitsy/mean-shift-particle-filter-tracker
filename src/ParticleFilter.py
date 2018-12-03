@@ -2,7 +2,7 @@
 ''' Constructs a videocapture device on either webcam or a disk movie file.
 Press q to exit
 
-Junaed Sattar
+Original boiler plate code (mouse events, window capture) by Junaed Sattar
 October 2018
 '''
 
