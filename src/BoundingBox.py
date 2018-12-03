@@ -2,13 +2,13 @@ import numpy as np
 
 
 class BoundingBox:
-	center_x: int
-	center_y: int
+	bottomleft_x: int
+	bottomleft_y: int
 	width: int
 	height: int
 
 	def __init__(self, x: int, y: int, w: int, h: int, max_x: int, max_y: int, min_x: int, min_y: int):
-		(self.center_x, self.center_y) = (x, y)
+		(self.bottomleft_x, self.bottomleft_y) = (x, y)
 
 		if(x + w >= max_x):
 			self.width = max_x - x - 1
@@ -25,6 +25,6 @@ class BoundingBox:
 			self.height = h
 	
 	def print(self):
-		print("center: (", self.center_x, self.center_y, ")")
+		print("center: (", self.bottomleft_x, self.bottomleft_y, ")")
 		print("width: ", self.width, self.height)
 		

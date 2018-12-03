@@ -110,7 +110,7 @@ def create_particles(bounding_box: BoundingBox, num_windows: int) -> List[Partic
 
 
 def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles) -> (np.ndarray, List):
-	histograms = []
+	histograms = [[0 for i in range(0, 3)] for j in range(0, len(particles))]
 	bounding_boxes = []
 
 	for i in range(0, len(particles)):
@@ -128,13 +128,17 @@ def sliding_window_histograms(bounding_box: BoundingBox, particles: Particles) -
 
 
 		mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-		histogram = cv2.calcHist([image], [0], mask, [16], [0, 256])
-		histograms.append(histogram)
+		
+		#histograms[i].append(histogram)
+		colours = ('b', 'g', 'r')
+		for j, cols in enumerate(colours):
+			histograms[i][j] = cv2.calcHist([image], [j], mask, [16], [0, 256])
 	return (histograms, bounding_boxes)
 
 # shape: rows, columns, channels (rgb)
 # 3-2: Compute colour histogram for each particle
-def generate_histogram(bounding_box: BoundingBox) -> np.ndarray:
+def generate_histograms(bounding_box: BoundingBox) -> np.ndarray:
+	histograms = []	
 	min_x = bounding_box.center_x - bounding_box.width / 2
 	max_x = bounding_box.center_x + bounding_box.width / 2
 	min_y = bounding_box.center_y - bounding_box.height / 2
@@ -143,10 +147,14 @@ def generate_histogram(bounding_box: BoundingBox) -> np.ndarray:
 	# make a mask and get histogram in this window
 	mask = np.zeros(image.shape[:2], np.uint8)
 	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-	histogram = cv2.calcHist([image], [0], mask, [16], [0, 256])
+
+	colours = ('b', 'g', 'r')
+	for i, cols in enumerate(colours):
+		histogram = cv2.calcHist([image], [i], mask, [16], [0, 256])
+		histograms.append(histogram)
 
 	# numpy.ndarray	
-	return histogram
+	return histograms
 
 
 # Not going to type annotate this yet
@@ -182,9 +190,8 @@ def create_kernel(bounding_box):
 
 # From mpatacchiola - github user
 def histogram_similarity(hist1, hist2):
-	mininum = np.minimum(hist1, hist2)
-	intersection = np.true_divide(np.sum(mininum), np.sum(hist2))
-	print("intersection: ", intersection)
+	min = np.minimum(hist1, hist2)
+	intersection = np.true_divide(np.sum(min), np.sum(hist2))
 	return intersection
 
 
@@ -198,20 +205,26 @@ def draw_bounding_box(bounding_box: BoundingBox, image, color: (int, int, int)) 
 	cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
 
-def tracking_histogram_routine(target_histogram, bounding_box: BoundingBox, kernel, window_histograms: List, window_bbs: List, window_kernels: List, current_center: (int, int)):
+def tracking_histogram_routine(target_histograms, bounding_box: BoundingBox, kernel, window_histograms: List, window_bbs: List, window_kernels: List, current_center: (int, int)):
 	# Similarity measure for each window_histogram against target_histogram
 	# Find the most similar histogram
 	# Set that as the center, check if distance from current_center to the best window_histogram is below a distance
 	# If it isn't, make a new bounding box using window_histogram as the center,
 	# Recurse with target_histogram, new_bounding_box, kernel, new_window_histograms, new_window_bbs, window_kernels, new_center
-	maximum = 0
+	max = 0
 	index = 0
 	for i in range(0, len(window_histograms)):
-		intersection = histogram_similarity(target_histogram, window_histograms[i])
-		if intersection > maximum:
+		intersection = 0
+		for j in range(0, 3):
+			intersection += histogram_similarity(target_histograms[j], window_histograms[i][j])
+
+		if intersection >= max:
 			max = intersection
-			maximum = i
-	print("max: ", maximum)
+			index = i
+		
+
+
+	print("max: ", max)
 	print("index: ", index)
 		
 
@@ -246,7 +259,7 @@ def captureVideo(src) -> None:
 	kernel = create_kernel(bounding_box)
 
 
-	target_histogram = generate_histogram(bounding_box)
+	target_histograms = generate_histograms(bounding_box)
 	#tracking_histogram = np.zeros()
 	window_histograms = []
 	window_bbs = []
@@ -254,7 +267,6 @@ def captureVideo(src) -> None:
 	while(True):
 		# Capture frame-by-frame
 		ret, image = cap.read()
-		image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 		if ret == False:
 			break
 		
@@ -271,9 +283,9 @@ def captureVideo(src) -> None:
 				window_kernels.append(window_kernel)
 
 
-			target_histograms = generate_histogram(bounding_box)
+			target_histograms = generate_histograms(bounding_box)
 			#tracking_histogram = tracking_histogram_routine(target_histogram, bounding_box, kernel)
-			tracking_histogram_routine(target_histogram, bounding_box, kernel, window_histograms, window_bbs, window_kernels, (bounding_box.center_x, bounding_box.center_y))
+			tracking_histogram_routine(target_histograms, bounding_box, kernel, window_histograms, window_bbs, window_kernels, (bounding_box.center_x, bounding_box.center_y))
 
 
 			draw_bounding_box(bounding_box, image, color = (0, 0, 255))

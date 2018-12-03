@@ -107,11 +107,13 @@ def calculate_histogram(bounding_box: BoundingBox, img):
 	histogram = cv2.calcHist([img], [0], mask, [256], [0, 256])
 	return histogram
 
-def draw(window):
-	bottom_x, bottom_y, width, height = window
-	bounds = cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), 255, 2)
-	cv2.imshow('bounding_box', bounds)
+def draw(window, image):
+	(bottom_x, bottom_y, width, height) = window
+	#bounds = cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), 255, 2)
+	#cv2.imshow('bounding_box', bounds)
 			##img2 = cv2.rectangle(image, (x,y), (x+w,y+h), 255,2)
+	cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), (0, 0, 255), 2)
+	
 
 
 def captureVideo(src) -> None:
@@ -148,22 +150,21 @@ def captureVideo(src) -> None:
 	termination_parameters = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 5, 5)
 
 	while(True):
-		ret ,image = cap.read()
+		ret, image = cap.read()
 		
 		if(hacky_click_has_occurred):
 			track_window = (mouse_x, mouse_y, width, height)
 			tracking_region = image[mouse_y:mouse_y + height, mouse_x:mouse_x + width]
-			mask = cv2.inRange(tracking_region, np.array((0., 60.,32.)), np.array((255.0, 255.0, 255.0)))
-			tracking_region_hist = cv2.calcHist([tracking_region],[0],mask,[256],[0,256])
-			cv2.normalize(tracking_region_hist,tracking_region_hist,0,255,cv2.NORM_MINMAX)
+			mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((255.0, 255.0, 255.0)))
+			tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
+			cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
 
 			hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-			dst = cv2.calcBackProject([hsv],[0],tracking_region_hist,[0,180],1)
+			dst = cv2.calcBackProject([hsv], [0], tracking_region_hist, [0,256], 1)
 			# apply meanshift to get the new location
 			ret, track_window = cv2.meanShift(dst, track_window, termination_parameters)
-			draw(track_window)
+			draw(track_window, image)
 		
-
 		# Display the resulting frame   
 		if isTracking:
 			doTracking()
