@@ -102,12 +102,12 @@ def captureVideo(src) -> None:
 			for i in range(0, len(current_x)):
 				track_window = (current_x[i], current_y[i], width, height)
 				tracking_region = image[current_y[i]:current_y[i] + height, current_x[i]:current_x[i] + width]
-				mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((255.0, 255.0, 255.0)))
-				tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
-				cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
+				mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((180.0, 180.0, 180.0)))
+				tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [180], [0,180])
+				cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 180, cv2.NORM_MINMAX)
 
 				hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-				back_propagation = cv2.calcBackProject([hsv_image], [0], tracking_region_hist, [0,256], 1)
+				back_propagation = cv2.calcBackProject([hsv_image], [0], tracking_region_hist, [0,180], 1)
 				ret, track_window = cv2.meanShift(back_propagation, track_window, termination_parameters)
 				current_x[i] = track_window[0]
 				current_y[i] = track_window[1]
