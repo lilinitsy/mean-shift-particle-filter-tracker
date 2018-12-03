@@ -29,24 +29,21 @@ imageHeight = 0
 
 width = 60
 height = 60
-current_x = 0
-current_y = 0
-
+current_x = []
+current_y = []
 hacky_click_has_occurred = False
 	
 
 # Mouse Callback function
 def clickHandler(event, x, y, flags, param) -> None:
-	global mouse_y
 	global current_x
 	global current_y
 	global hacky_click_has_occurred
 
 	if event == cv2.EVENT_LBUTTONUP:
 		print('left button released')
-		mouse_y = y
-		current_x = x
-		current_y = y
+		current_x.append(x)
+		current_y.append(y)
 		hacky_click_has_occurred = True
 
 
@@ -104,19 +101,20 @@ def captureVideo(src) -> None:
 		ret, image = cap.read()
 		
 		if(hacky_click_has_occurred):
-			track_window = (current_x, current_y, width, height)
-			tracking_region = image[current_y:current_y + height, current_x:current_x + width]
-			mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((255.0, 255.0, 255.0)))
-			tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
-			cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
+			for i in range(0, len(current_x)):
+				track_window = (current_x[i], current_y[i], width, height)
+				tracking_region = image[current_y[i]:current_y[i] + height, current_x[i]:current_x[i] + width]
+				mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((255.0, 255.0, 255.0)))
+				tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [256], [0,256])
+				cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
 
-			hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-			dst = cv2.calcBackProject([hsv], [0], tracking_region_hist, [0,256], 1)
-			# apply meanshift to get the new location
-			ret, track_window = cv2.meanShift(dst, track_window, termination_parameters)
-			current_x = track_window[0]
-			current_y = track_window[1]
-			draw(track_window, image)
+				hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+				dst = cv2.calcBackProject([hsv], [0], tracking_region_hist, [0,256], 1)
+				# apply meanshift to get the new location
+				ret, track_window = cv2.meanShift(dst, track_window, termination_parameters)
+				current_x[i] = track_window[0]
+				current_y[i] = track_window[1]
+				draw(track_window, image)
 		
 		# Display the resulting frame   
 		cv2.imshow(windowName, image)										
