@@ -53,19 +53,15 @@ def calculate_histogram(bounding_box: BoundingBox, img):
 	min_y = bounding_box.bottomleft_y
 	max_y = bounding_box.bottomleft_y + bounding_box.height
 	
-	# make a mask and get histogram in this window
 	mask = np.zeros(img.shape[:2], np.uint8)
 	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
 	histogram = cv2.calcHist([img], [0], mask, [256], [0, 256])
 	return histogram
 
 
-def draw(window, image):
+def draw(window, image, colour: (int, int, int)) -> None:
 	(bottom_x, bottom_y, width, height) = window
-	#bounds = cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), 255, 2)
-	#cv2.imshow('bounding_box', bounds)
-			##img2 = cv2.rectangle(image, (x,y), (x+w,y+h), 255,2)
-	cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), (0, 0, 255), 2)
+	cv2.rectangle(image, (bottom_x, bottom_y), (bottom_x + width, bottom_y + height), colour, 2)
 	
 
 def captureVideo(src) -> None:
@@ -112,11 +108,10 @@ def captureVideo(src) -> None:
 
 				hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 				back_propagation = cv2.calcBackProject([hsv_image], [0], tracking_region_hist, [0,256], 1)
-				# apply meanshift to get the new location
 				ret, track_window = cv2.meanShift(back_propagation, track_window, termination_parameters)
 				current_x[i] = track_window[0]
 				current_y[i] = track_window[1]
-				draw(track_window, image)
+				draw(track_window, image, (0, 255, 0))
 		
 		# Display the resulting frame   
 		cv2.imshow(windowName, image)										
