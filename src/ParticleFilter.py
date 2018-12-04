@@ -138,15 +138,15 @@ def captureVideo(src) -> None:
 			target_histogram = generate_histograms(target_bounding_box, hsv_image)
 
 			# have to normalize before comparisons
-			cv2.normalize(target_histogram, target_histogram, 0, 255, cv2.NORM_MINMAX)
+			cv2.normalize(target_histogram, target_histogram, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX)
 			for i in range(0, len(particles)):
-				cv2.normalize(particles[i].histogram, particles[i].histogram, 0, 255, cv2.NORM_MINMAX)
+				cv2.normalize(particles[i].histogram, particles[i].histogram, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX)
 
 			for i in range(0, len(particles)):
-				print("Particles i: ", particles[i].histogram.shape)
+				#print("Particles i: ", particles[i].histogram.shape)
 				#print("target histogram shape: ", target_histogram.shape)
-				#similarity_score = similarity(particles[i].histogram, target_histogram)
-				#print("i: ", i, "\tSimilarity Score: ", similarity_score)
+				similarity_score = similarity(particles[i].histogram, target_histogram)
+				print("i: ", i, "\tSimilarity Score: ", similarity_score)
 
 			for i in range(0, len(particles)):
 				draw_bounding_box(particles[i].bounding_box, image, (0, 255, 0))
