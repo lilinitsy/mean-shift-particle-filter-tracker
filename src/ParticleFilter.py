@@ -41,6 +41,9 @@ current_y = 0
 hacky_click_has_occurred = False
 particles = []
 	   
+
+target_bounding_box: BoundingBox
+target_histogram: np.ndarray
 	
 # Mouse Callback function
 def clickHandler(event, x, y, flags, param) -> None:
@@ -48,15 +51,22 @@ def clickHandler(event, x, y, flags, param) -> None:
 	global mouse_y
 	global hacky_click_has_occurred
 	global particles
+	global target_bounding_box
+	global target_histogram
 
 	if event == cv2.EVENT_LBUTTONUP:
 		print('left button released')
 		mouse_x = x
 		mouse_y = y
 		current_x = mouse_x
-		current_y = mouse_y
-		hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)	
+		current_y = mouse_y	
+
+
+		hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+		target_bounding_box = BoundingBox(mouse_x, mouse_y, 20, 20, 640, 480, 0, 0)
+		target_histogram = generate_histograms(target_bounding_box, hsv_image)
 		particles = create_particles(20, 640, 480, 20, 20, hsv_image)
+
 		hacky_click_has_occurred = True
 
 
@@ -73,6 +83,11 @@ def create_particles(num_particles: int, max_x: int, max_y: int, width: int, hei
 		particles.append(particle)
 
 	return particles
+
+def update_particle(image, particle: Particles) -> Particles:
+	histogram = generate_histograms(particle.bounding_box, image)
+	particle.histogram = histogram
+	return particle
 
 
 # shape: rows, columns, channels (rgb)
@@ -103,7 +118,7 @@ def draw_bounding_box(bounding_box: BoundingBox, image, colour: (int, int, int))
 
 
 def captureVideo(src) -> None:
-	global image, isTracking, trackedImage, particles, current_x, current_y
+	global image, isTracking, trackedImage, particles, current_x, current_y, target_bounding_box, target_histogram
 
 	cap = cv2.VideoCapture(src)
 	if cap.isOpened() and src=='0':
@@ -128,6 +143,10 @@ def captureVideo(src) -> None:
 	cv2.namedWindow(windowName)
 	cv2.setMouseCallback(windowName, clickHandler)
 
+
+	## PARTICLES NEED TO CONVERGE
+	## SO MAKE THEM BE CREATED IN A REGION AROUND THE CENTER OF THE TRACKING / TARGET BOUNDING BOX?
+
 	while(True):
 		# Capture frame-by-frame
 		ret, image = cap.read()
@@ -137,9 +156,15 @@ def captureVideo(src) -> None:
 		hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 		
 		if(hacky_click_has_occurred):
+			hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)	
+
+			for i in range(0, len(particles)):
+				particles[i] = update_particle(image, particles[i])
+
+
+	
 			# Particles is a global, modified in def mouseClicks
-			target_bounding_box = BoundingBox(current_x, current_y, 20, 20, 640, 480, 0, 0)
-			target_histogram = generate_histograms(target_bounding_box, hsv_image)
+			# ^ No longer valid, but may become so again...
 
 			# have to normalize before comparisons
 			cv2.normalize(target_histogram, target_histogram, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX)
@@ -168,6 +193,8 @@ def captureVideo(src) -> None:
 			for i in range(0, len(particles)):
 				draw_bounding_box(particles[i].bounding_box, image, (0, 255, 0))
 			draw_bounding_box(target_bounding_box, image, (255, 255, 0))
+
+
 		# Display the resulting frame   
 		cv2.imshow(windowName, image)					
 		inputKey = cv2.waitKey(waitTime) & 0xFF
