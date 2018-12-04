@@ -35,6 +35,8 @@ trackedImage = np.zeros((640, 480, 3), np.uint8)
 imageWidth = imageHeight = 0
 
 mouse_x = mouse_y = 0
+current_x = 0
+current_y = 0
 
 hacky_click_has_occurred = False
 particles = []
@@ -51,6 +53,8 @@ def clickHandler(event, x, y, flags, param) -> None:
 		print('left button released')
 		mouse_x = x
 		mouse_y = y
+		current_x = mouse_x
+		current_y = mouse_y
 		hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)	
 		particles = create_particles(20, 640, 480, 20, 20, hsv_image)
 		hacky_click_has_occurred = True
@@ -99,7 +103,7 @@ def draw_bounding_box(bounding_box: BoundingBox, image, colour: (int, int, int))
 
 
 def captureVideo(src) -> None:
-	global image, isTracking, trackedImage, particles
+	global image, isTracking, trackedImage, particles, current_x, current_y
 
 	cap = cv2.VideoCapture(src)
 	if cap.isOpened() and src=='0':
@@ -134,7 +138,7 @@ def captureVideo(src) -> None:
 		
 		if(hacky_click_has_occurred):
 			# Particles is a global, modified in def mouseClicks
-			target_bounding_box = BoundingBox(mouse_x, mouse_y, 20, 20, 640, 480, 0, 0)
+			target_bounding_box = BoundingBox(current_x, current_y, 20, 20, 640, 480, 0, 0)
 			target_histogram = generate_histograms(target_bounding_box, hsv_image)
 
 			# have to normalize before comparisons
@@ -156,6 +160,8 @@ def captureVideo(src) -> None:
 			position_y /= particle_weights
 			position_x = int(position_x)
 			position_y = int(position_y)
+			current_x = position_x
+			current_y = position_y
 			tracking_bounding_box = BoundingBox(position_x, position_y, 20, 20, 640, 480, 0, 0)
 			draw_bounding_box(tracking_bounding_box, image, (255, 0, 0))
 
