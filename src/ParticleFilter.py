@@ -40,7 +40,6 @@ hacky_click_has_occurred = False
 particles = []
 	   
 	
-
 # Mouse Callback function
 def clickHandler(event, x, y, flags, param) -> None:
 	global mouse_x
@@ -57,23 +56,16 @@ def clickHandler(event, x, y, flags, param) -> None:
 		hacky_click_has_occurred = True
 
 
-def mapClicks(x: int, y: int, curWidth: int, curHeight: int) -> None:
-	global imageHeight, imageWidth
-	imageX = x * imageWidth / curWidth
-	imageY = y * imageHeight / curHeight
-	return imageX, imageY
-
 def create_particles(num_particles: int, max_x: int, max_y: int, width: int, height: int, image) -> List[Particles]:
 	particles = []
 
 	for i in range(0, num_particles):
-		#x: int, y: int, r: int, max_x: int, max_y: int, min_x: int, min_y: int):
 		x = random.randint(width, max_x - 1 - width)
 		y = random.randint(height, max_y - 1 - height)
 		bbox = BoundingBox(x, y, width, height, 640, 480, 0, 0)
 		
 		histogram = generate_histograms(bbox, image)
-		particle = Particles(bbox, 1, histogram)
+		particle = Particles(bbox, histogram, 1)
 		particles.append(particle)
 
 	return particles
@@ -87,22 +79,15 @@ def generate_histograms(bounding_box: BoundingBox, image) -> np.ndarray:
 	max_x = bounding_box.bottomleft_x + bounding_box.width
 	max_y = bounding_box.bottomleft_y + bounding_box.height
 
-
 	mask = np.zeros(image.shape[:2], np.uint8)
 	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-	histogram = cv2.calcHist([image], [0], mask, [256], [0, 256])
+	histogram = cv2.calcHist([image], [0], mask, [180], [0, 180])
 	return histogram
-	# numpy.ndarray	
 
 
-def similarity(particle: Particles, target_histogram):
-	similarity_score = cv2.compareHist(particle.histogram, target_histogram, cv2.HISTCMP_INTERSECT)
+def similarity(particle_histogram, target_histogram) -> float:
+	similarity_score = cv2.compareHist(particle_histogram, target_histogram, cv2.HISTCMP_INTERSECT)
 	return similarity_score
-
-# Not going to type annotate this yet
-
-# 3-3: Similiarity step, use Bhattacharyya Distance for PF
-# But for MSV, use the colour histogram similarity
 
 
 def draw_bounding_box(bounding_box: BoundingBox, image, colour: (int, int, int)) -> None:
@@ -111,18 +96,6 @@ def draw_bounding_box(bounding_box: BoundingBox, image, colour: (int, int, int))
 	width = bounding_box.width
 	height = bounding_box.height
 	cv2.rectangle(image, (x, y), (x + width, y + height), colour, 2)
-
-def tracking_histogram_routine(target_histograms, bounding_box: BoundingBox, kernel, window_histograms: List, window_bbs: List, window_kernels: List, current_center: (int, int)):
-	# Similarity measure for each window_histogram against target_histogram
-	# Find the most similar histogram
-	# Set that as the center, check if distance from current_center to the best window_histogram is below a distance
-	# If it isn't, make a new bounding box using window_histogram as the center,
-	# Recurse with target_histogram, new_bounding_box, kernel, new_window_histograms, new_window_bbs, window_kernels, new_center
-	max = 0
-	index = 0
-	print("max: ", max)
-	print("index: ", index)
-		
 
 
 def captureVideo(src) -> None:
@@ -170,8 +143,10 @@ def captureVideo(src) -> None:
 				cv2.normalize(particles[i].histogram, particles[i].histogram, 0, 255, cv2.NORM_MINMAX)
 
 			for i in range(0, len(particles)):
-				similarity_score = similarity(particles[i], target_histogram)
-				print("i: ", i, "\tSimilarity Score: ", similarity_score)
+				print("Particles i: ", particles[i].histogram.shape)
+				#print("target histogram shape: ", target_histogram.shape)
+				#similarity_score = similarity(particles[i].histogram, target_histogram)
+				#print("i: ", i, "\tSimilarity Score: ", similarity_score)
 
 			for i in range(0, len(particles)):
 				draw_bounding_box(particles[i].bounding_box, image, (0, 255, 0))

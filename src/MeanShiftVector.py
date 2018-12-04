@@ -55,7 +55,7 @@ def calculate_histogram(bounding_box: BoundingBox, img):
 	
 	mask = np.zeros(img.shape[:2], np.uint8)
 	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-	histogram = cv2.calcHist([img], [0], mask, [256], [0, 256])
+	histogram = cv2.calcHist([img], [0], mask, [180], [0, 180])
 	return histogram
 
 
@@ -104,7 +104,7 @@ def captureVideo(src) -> None:
 				tracking_region = image[current_y[i]:current_y[i] + height, current_x[i]:current_x[i] + width]
 				mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((180.0, 180.0, 180.0)))
 				tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [180], [0,180])
-				cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 180, cv2.NORM_MINMAX)
+				cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
 
 				hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 				back_propagation = cv2.calcBackProject([hsv_image], [0], tracking_region_hist, [0,180], 1)
