@@ -21,7 +21,15 @@ class BoundingBox:
 		else:
 			self.height = h
 	
-	def print(self):
+	def print(self) -> None:
 		print("center: (", self.bottomleft_x, self.bottomleft_y, ")")
 		print("width: ", self.width, self.height)
+
+	def get_center(self) -> (int, int):
+		x = self.bottomleft_x + self.width / 2
+		y = self.bottomleft_y + self.height / 2
+		x = int(x)
+		y = int(y)
+
+		return (x, y)
 		

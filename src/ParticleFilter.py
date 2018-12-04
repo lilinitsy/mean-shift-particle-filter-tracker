@@ -142,11 +142,22 @@ def captureVideo(src) -> None:
 			for i in range(0, len(particles)):
 				cv2.normalize(particles[i].histogram, particles[i].histogram, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX)
 
+			particle_weights = 0
+			(position_x, position_y) = (0, 0)
 			for i in range(0, len(particles)):
-				#print("Particles i: ", particles[i].histogram.shape)
-				#print("target histogram shape: ", target_histogram.shape)
 				similarity_score = similarity(particles[i].histogram, target_histogram)
+				particle_weights += similarity_score
+				(center_x, center_y) = particles[i].bounding_box.get_center()
+				position_x += center_x * similarity_score
+				position_y += center_y * similarity_score
 				print("i: ", i, "\tSimilarity Score: ", similarity_score)
+			
+			position_x /= particle_weights
+			position_y /= particle_weights
+			position_x = int(position_x)
+			position_y = int(position_y)
+			tracking_bounding_box = BoundingBox(position_x, position_y, 20, 20, 640, 480, 0, 0)
+			draw_bounding_box(tracking_bounding_box, image, (255, 0, 0))
 
 			for i in range(0, len(particles)):
 				draw_bounding_box(particles[i].bounding_box, image, (0, 255, 0))
