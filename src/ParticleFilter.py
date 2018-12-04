@@ -53,6 +53,8 @@ def clickHandler(event, x, y, flags, param) -> None:
 	global particles
 	global target_bounding_box
 	global target_histogram
+	global current_x
+	global current_y
 
 	if event == cv2.EVENT_LBUTTONUP:
 		print('left button released')
@@ -65,17 +67,17 @@ def clickHandler(event, x, y, flags, param) -> None:
 		hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 		target_bounding_box = BoundingBox(mouse_x, mouse_y, 20, 20, 640, 480, 0, 0)
 		target_histogram = generate_histograms(target_bounding_box, hsv_image)
-		particles = create_particles(20, 640, 480, 20, 20, hsv_image)
+		particles = create_particles(50, 640, 480, 0, 0, 20, 20, hsv_image)
 
 		hacky_click_has_occurred = True
 
 
-def create_particles(num_particles: int, max_x: int, max_y: int, width: int, height: int, image) -> List[Particles]:
+def create_particles(num_particles: int, max_x: int, max_y: int, min_x: int, min_y: int, width: int, height: int, image) -> List[Particles]:
 	particles = []
 
 	for i in range(0, num_particles):
-		x = random.randint(width, max_x - 1 - width)
-		y = random.randint(height, max_y - 1 - height)
+		x = random.randint(min_y, max_x)
+		y = random.randint(min_y, max_y)
 		bbox = BoundingBox(x, y, width, height, 640, 480, 0, 0)
 		
 		histogram = generate_histograms(bbox, image)
@@ -158,8 +160,9 @@ def captureVideo(src) -> None:
 		if(hacky_click_has_occurred):
 			hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)	
 
-			for i in range(0, len(particles)):
-				particles[i] = update_particle(image, particles[i])
+
+			#for i in range(0, len(particles)):
+				#particles[i] = update_particle(image, particles[i])
 
 
 	
@@ -189,6 +192,7 @@ def captureVideo(src) -> None:
 			current_y = position_y
 			tracking_bounding_box = BoundingBox(position_x, position_y, 20, 20, 640, 480, 0, 0)
 			draw_bounding_box(tracking_bounding_box, image, (255, 0, 0))
+			particles = create_particles(50, current_x + 50, current_y + 50, current_x - 0, current_y - 50, 20, 20, hsv_image)
 
 			for i in range(0, len(particles)):
 				draw_bounding_box(particles[i].bounding_box, image, (0, 255, 0))
