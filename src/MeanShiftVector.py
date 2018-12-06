@@ -11,6 +11,7 @@ import cv2
 import sys
 import random
 import math
+import time
 
 from matplotlib import pyplot as plt
 from typing import List
@@ -55,7 +56,7 @@ def calculate_histogram(bounding_box: BoundingBox, img):
 	
 	mask = np.zeros(img.shape[:2], np.uint8)
 	mask[int(min_x):int(max_x), int(min_y):int(max_y)] = 255
-	histogram = cv2.calcHist([img], [0], mask, [180], [0, 180])
+	histogram = cv2.calcHist([img], [0], mask, [9], [0, 180])
 	return histogram
 
 
@@ -96,6 +97,7 @@ def captureVideo(src) -> None:
 	termination_parameters = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 5, 5)
 
 	while(True):
+		start_time = time.time()
 		ret, image = cap.read()
 		
 		if(hacky_click_has_occurred):
@@ -103,7 +105,7 @@ def captureVideo(src) -> None:
 				track_window = (current_x[i], current_y[i], width, height)
 				tracking_region = image[current_y[i]:current_y[i] + height, current_x[i]:current_x[i] + width]
 				mask = cv2.inRange(tracking_region, np.array((0.0, 0.0, 0.0)), np.array((180.0, 180.0, 180.0)))
-				tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [180], [0,180])
+				tracking_region_hist = cv2.calcHist([tracking_region], [0], mask, [9], [0,180])
 				cv2.normalize(tracking_region_hist, tracking_region_hist, 0, 255, cv2.NORM_MINMAX)
 
 				hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -120,7 +122,9 @@ def captureVideo(src) -> None:
 		if inputKey == ord('q'):
 			break
 		elif inputKey == ord('t'):
-			isTracking = not isTracking			
+			isTracking = not isTracking
+
+		print("FPS: ", 1.0 / (time.time() - start_time))	
 
 	# When everything done, release the capture
 	cap.release()

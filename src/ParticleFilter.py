@@ -10,7 +10,7 @@ import cv2
 import sys
 import random
 import math
-
+import time
 from matplotlib import pyplot as plt
 from typing import List
 
@@ -150,6 +150,7 @@ def captureVideo(src) -> None:
 
 	while(True):
 		# Capture frame-by-frame
+		start_time = time.time()
 		ret, image = cap.read()
 		if ret == False:
 			break
@@ -183,8 +184,11 @@ def captureVideo(src) -> None:
 				position_y += center_y * similarity_score
 				print("i: ", i, "\tSimilarity Score: ", similarity_score)
 			
-			position_x /= particle_weights
-			position_y /= particle_weights
+			if particle_weights > 0:
+				position_x /= particle_weights
+				position_y /= particle_weights
+			else:
+				particle_weights = 1
 			position_x = int(position_x)
 			position_y = int(position_y)
 			current_x = position_x
@@ -206,7 +210,7 @@ def captureVideo(src) -> None:
 		elif inputKey == ord('t'):
 			isTracking = not isTracking							
 
-
+		print("FPS: ", 1.0 / (time.time() - start_time))
 		plt.show()
 	# When everything done, release the capture
 	cap.release()
